@@ -2,3 +2,6 @@ opencv-python
 ultralytics
 deepface
 psycopg2-binary
+fastapi
+uvicorn
+python-multipart

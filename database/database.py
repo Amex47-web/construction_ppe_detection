@@ -5,7 +5,7 @@ import numpy as np
 DB_CONFIG = {
     "dbname": "construction_ppe_violation",
     "user": "postgres",
-    "password": "Codeis@04",
+    "password": "Ris@7219",
     "host": "localhost",
     "port": "5432"
 }
@@ -100,3 +100,61 @@ def find_matching_worker(new_embedding, threshold=0.4):
     cur.close()
     conn.close()
     return best_match
+
+def get_recent_violations(limit=50, from_timestamp=0):
+    """Fetches the most recent violations joined with worker details."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        # PostgreSQL to_timestamp takes seconds
+        cur.execute("""
+            SELECT v.id, v.worker_id, v.equipped_items, v.violated_items, v.evidence_path, v.timestamp, w.display_name 
+            FROM violations v
+            LEFT JOIN workers w ON v.worker_id = w.id
+            WHERE v.timestamp >= to_timestamp(%s)
+            ORDER BY v.timestamp DESC
+            LIMIT %s
+        """, (from_timestamp, limit))
+        rows = cur.fetchall()
+        
+        violations = []
+        for r in rows:
+            violations.append({
+                "id": r[0],
+                "worker_id": r[1],
+                "equipped_items": r[2],
+                "violated_items": r[3],
+                "evidence_path": r[4],
+                "timestamp": r[5],
+                "worker_name": r[6]
+            })
+        return violations
+    except Exception as e:
+        print(f"[DB ERROR] get_recent_violations: {e}")
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+def get_all_workers():
+    """Fetches all registered workers."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id, display_name, created_at FROM workers ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        
+        workers = []
+        for r in rows:
+            workers.append({
+                "id": str(r[0]),
+                "display_name": r[1],
+                "created_at": r[2]
+            })
+        return workers
+    except Exception as e:
+        print(f"[DB ERROR] get_all_workers: {e}")
+        return []
+    finally:
+        cur.close()
+        conn.close()
